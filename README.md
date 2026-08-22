@@ -27,13 +27,20 @@ Non gioca al posto tuo e non implementa il mid-game. La specifica completa è in
 | M2 | Valutazione del singolo incrocio `S(v)` | ✅ fatto |
 | M3 | Valutazione della coppia (il cuore) | ✅ fatto |
 | M4 | Contesto di draft, avversari, strade | ✅ fatto |
-| M5 | Output spiegabile §D.3 | da fare |
+| M5 | Output spiegabile §D.3 | ✅ fatto |
 | M6 | Validazione su Catanatron | da fare |
 
 ## Uso
 
+Il comando che conta è `advise`: produce la raccomandazione completa di §D.3.
+Gli altri espongono un livello ciascuno, ed e' quello che rende il modello
+ispezionabile invece che opaco.
+
 ```bash
 pip install -e ".[dev]"
+
+# IL CONSIGLIO COMPLETO: 3 opzioni con motivazioni, rischi, strada e fallback
+python -m catan_advisor.cli advise boards/mio.json --position 1
 
 # genera un tabellone casuale legale
 python -m catan_advisor.cli newboard --seed 7 -o boards/mio.json

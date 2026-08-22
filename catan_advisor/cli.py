@@ -1,8 +1,8 @@
 """Command line entry point.
 
-M1 exposes only what M1 can honestly do: build or read a board, check it is
-legal, and run the pre-computation of KB B.6. The advice commands arrive with
-M2 to M5.
+`advise` is the command that matters: it produces the full recommendation of
+KB D.3. The others expose one layer each, which is what makes the model
+inspectable -- precompute (B.6), score (B.3), pair (B.4), draft (C.1 to C.4).
 """
 
 from __future__ import annotations
@@ -10,9 +10,11 @@ from __future__ import annotations
 import argparse
 import sys
 
+from .advisor import advise
 from .board import Board, BoardError
 from .boardio import board_to_dict, load_board, random_board, save_board
 from .config import load_config
+from .explain import render_advice
 from .precompute import precompute
 from .report import (
     render_board_map,
@@ -102,6 +104,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_draft.add_argument("--top", type=int, default=3, help="quante opzioni mostrare")
     p_draft.add_argument("--samples", type=int, help="campioni di simulazione")
     _add_common(p_draft)
+
+    p_advise = sub.add_parser(
+        "advise", help="il consiglio completo nel formato della KB D.3"
+    )
+    p_advise.add_argument("board", help="file JSON del tabellone")
+    p_advise.add_argument(
+        "--options", type=int, default=3, help="quante raccomandazioni (minimo 3)"
+    )
+    p_advise.add_argument("--samples", type=int, help="campioni di simulazione")
+    _add_common(p_advise)
 
     return parser
 
@@ -199,6 +211,15 @@ def main(argv: list[str] | None = None) -> int:
             f"MIGLIORI PARTNER PER {args.first}" if args.first else f"TOP {args.top} COPPIE"
         )
         print(render_pair_scores(pairs, args.top, title))
+        return 0
+
+    if args.command == "advise":
+        cfg = load_config(args.config)
+        print(
+            render_advice(
+                advise(board, cfg, limit=args.options, samples=args.samples)
+            )
+        )
         return 0
 
     if args.command == "draft":
