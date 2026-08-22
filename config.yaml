@@ -49,17 +49,36 @@ vertex:
   mid_band_bonus: 0.5                # at least two tiles among 4,5,6,8,9,10
   extremes_only_penalty: -1.5        # only 2,3,11,12
 
-  # Expansion. KB B.3 made this a step function at pip >= 8; KB E.3 shows
-  # Catanatron scores reachable *production*, continuously. Value of a
-  # reachable vertex = coefficient * its pips, capped.
-  expansion_1road_coef: 0.11
-  expansion_1road_cap: 1.8
-  expansion_2road_coef: 0.045
-  expansion_2road_cap: 0.8
-  dead_end_penalty: -1.2
+  # Expansion. Two corrections to KB B.3:
+  #  - it counted "junctions reachable with 1 road", but a junction one edge
+  #    away from your settlement is adjacent to it, so the distance rule bans
+  #    building there forever. The nearest settleable target sits at distance 2
+  #    (the initial road plus one more), the next ring at distance 3.
+  #  - it was a step function at pip >= 8; KB E.3 shows Catanatron scores
+  #    reachable *production* continuously, so value = coefficient * pips.
+  # Coefficients measured over 12 boards x 54 junctions: the sum of the two best
+  # targets runs 8..25 at distance 2 (median 19) and 12..25 at distance 3
+  # (median 20). The KB values of 0.11 and 0.045 put 76% and 84% of junctions at
+  # the cap, which turns the term back into the step function E.3 told us to
+  # drop. These put roughly the top decile at the cap instead.
+  expansion_near_coef: 0.08          # distance 2: initial road + 1
+  expansion_near_cap: 1.8
+  expansion_far_coef: 0.032          # distance 3: two more roads
+  expansion_far_cap: 0.8
+  dead_end_penalty: -1.2             # no legal target at distance 2
   expansion_multiplier_3p: 1.4       # KB C.2: the board stays open with 3
 
-  robber_target_penalty: -0.6        # >=10 pips on 6/8 and no escape route
+  robber_target_penalty: -0.6        # KB B.3: you are the designated target
+  # Pips sitting on 6 and 8. Note: on a board built with the official balanced
+  # setup, where 6 and 8 may not touch, no junction can reach 10 -- the three
+  # tiles of a junction are mutually adjacent, so at most one of them is a 6 or
+  # an 8, capping this at 5. The term therefore only ever fires on a fully
+  # random setup. Concentration on 6/8 across the *pair* is the real risk, and
+  # it is handled in M3 (anti-pattern 4 of D.5).
+  robber_pip_threshold: 10
+  # How many expansion targets are counted before the cap applies. Two good
+  # options are worth more than one, because opponents will take one of them.
+  expansion_targets_counted: 2
 
 # --- Pair of settlements, KB B.4 -- the real output -------------------------
 pair:
@@ -103,8 +122,10 @@ ports:
   generic_high_production_bonus: 1.0    # pair has >= 20 pips
   generic_surplus_bonus: 1.2            # some resource at >= 8 pips
   # At the first pick the portfolio does not exist yet, so the port can only be
-  # priced as an option on a plausible partner. Arbitrary, hence exposed.
+  # priced as an option: worth what this vertex alone feeds it, plus a fraction
+  # of the upside a plausible second settlement would add. Arbitrary, hence exposed.
   unknown_portfolio_discount: 0.4
+  unknown_portfolio_partner_pips: 4
 
 # --- Draft context, KB C.1 to C.3 ------------------------------------------
 draft:

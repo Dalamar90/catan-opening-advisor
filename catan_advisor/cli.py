@@ -14,7 +14,13 @@ from .board import Board, BoardError
 from .boardio import board_to_dict, load_board, random_board, save_board
 from .config import load_config
 from .precompute import precompute
-from .report import render_board_map, render_precompute
+from .report import (
+    render_board_map,
+    render_precompute,
+    render_vertex_explanation,
+    render_vertex_scores,
+)
+from .scoring import score_all, score_vertex
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -48,6 +54,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_pre.add_argument("board", help="file JSON del tabellone")
     p_pre.add_argument("--top", type=int, default=10, help="quanti incroci mostrare")
     _add_common(p_pre)
+
+    p_score = sub.add_parser("score", help="punteggio S(v) dei singoli incroci (KB B.3)")
+    p_score.add_argument("board", help="file JSON del tabellone")
+    p_score.add_argument("--top", type=int, default=10, help="quanti incroci mostrare")
+    p_score.add_argument(
+        "--explain", metavar="VERTICE",
+        help="mostra il breakdown completo di un incrocio, es. v26",
+    )
+    p_score.add_argument(
+        "--all", action="store_true",
+        help="includi anche gli incroci gia occupati o bloccati",
+    )
+    _add_common(p_score)
 
     return parser
 
@@ -103,6 +122,18 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "map":
         print(render_board_map(board))
+        return 0
+
+    if args.command == "score":
+        cfg = load_config(args.config)
+        if args.explain:
+            if args.explain not in board.geometry.vertex_ids:
+                print(f"errore: incrocio sconosciuto {args.explain}", file=sys.stderr)
+                return 2
+            print(render_vertex_explanation(score_vertex(board, args.explain, cfg)))
+            return 0
+        scores = score_all(board, cfg, legal_only=not args.all)
+        print(render_vertex_scores(scores, args.top))
         return 0
 
     if args.command == "precompute":

@@ -182,3 +182,40 @@ def render_precompute(pre: Precompute, top_n: int = 10) -> str:
     if pre.warnings:
         blocks.append("AVVISI\n" + "\n".join(f"   - {w}" for w in pre.warnings))
     return "\n\n".join(blocks) + "\n"
+
+
+# --- M2: single junction scores --------------------------------------------
+
+
+def render_vertex_scores(scores: list, n: int = 10, title: str | None = None) -> str:
+    lines = [title or f"TOP {n} INCROCI per S(v)", ""]
+    for i, s in enumerate(scores[:n], start=1):
+        lines.append(f"   {i:>2}. {s.headline()}")
+    lines.append("")
+    lines.append(
+        "   S(v) e in pip-equivalenti: 1 punto = 1 pip = 1/36 di carta per tiro."
+    )
+    return "\n".join(lines)
+
+
+def render_vertex_explanation(score) -> str:
+    prod = ", ".join(
+        f"{K.RESOURCE_LABEL_IT[r]} {p}" for r, p in sorted(score.production.items())
+    )
+    lines = [
+        f"INCROCIO {score.vertex}  [{score.label}]",
+        "",
+        f"   S(v) = {score.score:.2f}",
+        f"   pip grezzi {score.pips}   pesati {score.weighted_pips:.1f}   "
+        f"{score.cards_per_roll:.3f} carte/tiro   {score.cards_per_round:.2f} carte/giro",
+        f"   produzione: {prod or 'nessuna'}",
+        f"   numeri: {', '.join(map(str, score.numbers)) or 'nessuno'}",
+    ]
+    if not score.legal:
+        lines.append("   NON DISPONIBILE: occupato o bloccato dalla distance rule")
+    lines += ["", "   DA DOVE VIENE IL PUNTEGGIO", score.breakdown.render()]
+    if score.expansion_targets:
+        lines += ["", "   BERSAGLI DI ESPANSIONE"]
+        for vertex, distance, pips in score.expansion_targets:
+            lines.append(f"      {vertex} a {distance} strade, {pips} pip")
+    return "\n".join(lines)

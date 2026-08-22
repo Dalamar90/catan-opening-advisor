@@ -24,7 +24,7 @@ Non gioca al posto tuo e non implementa il mid-game. La specifica completa è in
 | Milestone | Contenuto | Stato |
 |---|---|---|
 | M1 | Modello del tabellone, geometria, pre-calcolo §B.6 | ✅ fatto |
-| M2 | Valutazione del singolo incrocio `S(v)` | da fare |
+| M2 | Valutazione del singolo incrocio `S(v)` | ✅ fatto |
 | M3 | Valutazione della coppia (il cuore) | da fare |
 | M4 | Contesto di draft, avversari, strade | da fare |
 | M5 | Output spiegabile §D.3 | da fare |
@@ -46,6 +46,12 @@ python -m catan_advisor.cli map boards/mio.json
 
 # il pre-calcolo obbligatorio della KB §B.6
 python -m catan_advisor.cli precompute boards/mio.json --players 4 --position 2
+
+# punteggio S(v) dei singoli incroci
+python -m catan_advisor.cli score boards/mio.json --top 10
+
+# perché quell'incrocio vale quel punteggio, termine per termine
+python -m catan_advisor.cli score boards/mio.json --explain v26
 ```
 
 ## Come si inserisce un tabellone
