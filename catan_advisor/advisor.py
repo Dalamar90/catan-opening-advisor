@@ -65,6 +65,7 @@ class Recommendation:
     road_alternative: RoadOption | None = None
     fallbacks: list[tuple[str, float]] = field(default_factory=list)
     availability: float = 1.0   # chance it is still free when my turn comes
+    landing: float = 1.0        # chance this is the one I actually end up taking
 
     @property
     def archetype(self) -> str:
@@ -114,17 +115,34 @@ def advise(
         return Advice(board, context, pre, profiles, [], existing=mine)
 
     pending = context.opponent_picks_before_my_next()
+    # With opponents still to place, three options may not cover what will
+    # realistically be left, so the list is grown and trimmed by coverage below.
+    wanted = max(limit, 6) if pending else limit
     if context.is_first_pick:
-        recommendations, simulation = _first_pick_advice(board, cfg, limit, samples, pre)
+        recommendations, simulation = _first_pick_advice(board, cfg, wanted, samples, pre)
     else:
-        recommendations, simulation = _second_pick_advice(board, cfg, limit, mine, pre)
+        recommendations, simulation = _second_pick_advice(board, cfg, wanted, mine, pre)
 
     if pending:
-        # Opponents still have to place: annotate how likely each candidate is
-        # to survive until my turn, instead of pretending the board is mine.
+        # Opponents still have to place, so the ranking is a priority list, not
+        # a single choice: I take the best option that is still on the table.
+        # Each option therefore gets two numbers -- how likely it is to survive,
+        # and how likely it is to be the one I actually end up with.
         before = simulate_opponents(board, cfg, samples=samples)
+        remaining = 1.0
+        covered = 0.0
+        kept: list[Recommendation] = []
         for rec in recommendations:
             rec.availability = before.survival.get(rec.vertex, 1.0)
+            rec.landing = remaining * rec.availability
+            remaining -= rec.landing
+            kept.append(rec)
+            covered += rec.landing
+            if len(kept) >= limit and covered >= 0.85:
+                break
+        recommendations = kept
+        for rank, rec in enumerate(recommendations, start=1):
+            rec.rank = rank
 
     return Advice(
         board=board,

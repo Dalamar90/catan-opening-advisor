@@ -186,6 +186,9 @@ def _card(advice: Advice, rec: Recommendation) -> str:
         availability = (
             '<div class="availability"><span class="k">Libero al tuo turno</span>'
             f"{_availability_meter(rec.availability)}</div>"
+            '<div class="availability"><span class="k">Finisci qui</span>'
+            f'<div class="meter neutral"><span style="width:{rec.landing * 100:.0f}%">'
+            f'</span></div><span class="meter-value">{rec.landing * 100:.0f}%</span></div>'
         )
 
     road = ""
@@ -240,8 +243,10 @@ def render_advice_html(advice: Advice, title: str | None = None) -> str:
         warning = (
             '<div class="notice"><b>Non e ancora il tuo turno.</b> '
             f"Mancano {advice.pending_opponent_picks} piazzamenti avversari prima del "
-            f"tuo pick #{advice.context.next_pick}. Questo e un piano: la barra su ogni "
-            "opzione dice quanto e probabile che sia ancora libera.</div>"
+            f"tuo pick #{advice.context.next_pick}. Leggi la lista come un <b>ordine di "
+            "priorita</b>: prendi la prima opzione ancora libera quando tocca a te. "
+            "<i>Libero al tuo turno</i> e la probabilita che sopravviva; <i>finisci qui</i> "
+            "e la probabilita che sia proprio quella che ti tocca.</div>"
         )
 
     scarcity = "".join(
@@ -424,6 +429,7 @@ svg {{ width: 100%; height: auto; display: block; }}
 .meter span {{ display: block; height: 100%; border-radius: 99px; background: var(--ok); }}
 .meter.warn span {{ background: var(--warn); }}
 .meter.bad span {{ background: var(--bad); }}
+.meter.neutral span {{ background: var(--ink-soft); }}
 .meter-value {{ font: 500 13px "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }}
 
 .prods {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; }}

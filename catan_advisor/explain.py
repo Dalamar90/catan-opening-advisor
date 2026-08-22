@@ -42,9 +42,9 @@ def render_advice(advice: Advice, width: int = 78) -> str:
             "ATTENZIONE: NON E ANCORA IL TUO TURNO\n\n"
             f"   Mancano {n} piazzamenti avversari prima del tuo pick "
             f"#{advice.context.next_pick}, e non sono stati inseriti.\n"
-            "   Quello che segue e quindi un PIANO, non una decisione: gli incroci\n"
-            "   consigliati potrebbero essere gia presi quando tocchera a te.\n"
-            "   Per ogni opzione trovi la probabilita che sia ancora libera.\n"
+            "   Leggi la lista come un ORDINE DI PRIORITA: prendi la prima opzione\n"
+            "   ancora libera quando tocca a te. Per ognuna trovi la probabilita che\n"
+            "   sopravviva, e quella che sia proprio quella su cui finirai.\n"
             "   Appena i tuoi avversari piazzano, aggiungili in 'placements' e\n"
             "   rilancia: il consiglio diventa affidabile."
         )
@@ -118,6 +118,7 @@ def _render_recommendation(advice: Advice, rec: Recommendation, width: int) -> s
         )
         lines.append(
             f"   DISPONIBILE AL TUO TURNO: {rec.availability:.0%} ({verdict})"
+            f"   |   FINISCI QUI: {rec.landing:.0%}"
         )
         lines.append("")
     lines.append("   PERCHE:")
