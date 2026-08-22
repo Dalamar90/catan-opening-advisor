@@ -21,6 +21,8 @@ Non gioca al posto tuo e non implementa il mid-game. La specifica completa è in
 
 ## Stato
 
+Per riprendere il lavoro: [HANDOVER.md](HANDOVER.md).
+
 | Milestone | Contenuto | Stato |
 |---|---|---|
 | M1 | Modello del tabellone, geometria, pre-calcolo §B.6 | ✅ fatto |
