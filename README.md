@@ -81,8 +81,13 @@ python -m pytest -q
 
 ## Licenza
 
-Da definire. Nota: [Catanatron](https://github.com/bcollazo/catanatron), che useremo
-per la validazione in M6, è **GPL-3.0-or-later** (non MIT, come diceva la prima
-stesura della KB). Va importato solo da `validation/`, mai dal motore.
+**GPL-3.0-or-later** — vedi [`LICENSE`](LICENSE).
+
+La scelta è dettata da M6: [Catanatron](https://github.com/bcollazo/catanatron),
+che useremo per la validazione, è a sua volta GPL-3.0-or-later (non MIT, come
+diceva la prima stesura della KB). Un `Player` custom che eredita dalle sue classi
+è un import in-process di codice GPL, quindi licenziare tutto GPL toglie ogni
+ambiguità. Catanatron resta comunque una dipendenza opzionale, installata
+dall'utente e usata solo da `validation/`: il motore non la importa mai.
 
 Progetto non affiliato a Catan GmbH; *Catan* è un loro marchio registrato.

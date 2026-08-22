@@ -7,6 +7,12 @@ name = "catan-opening-advisor"
 version = "0.1.0"
 description = "Explainable advisor for the Catan opening placement phase"
 requires-python = ">=3.11"
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment :: Board Games",
+]
 dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
