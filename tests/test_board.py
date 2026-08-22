@@ -86,14 +86,12 @@ def test_italian_resource_names_are_accepted():
 # --- production ------------------------------------------------------------
 
 
-def _handmade_board() -> Board:
-    """A board we control, so the production numbers are checkable by hand."""
-    board = random_board(seed=1)
-    return board
+def _sample_board() -> Board:
+    return random_board(seed=1)
 
 
 def test_vertex_pips_equal_sum_of_its_tiles():
-    board = _handmade_board()
+    board = _sample_board()
     for v in G.vertex_ids:
         expected = sum(board.hexes[h].pips for h in G.vertex_hexes[v])
         assert board.vertex_pips(v) == expected
@@ -101,7 +99,7 @@ def test_vertex_pips_equal_sum_of_its_tiles():
 
 
 def test_no_vertex_touches_more_than_three_tiles():
-    board = _handmade_board()
+    board = _sample_board()
     assert max(len(board.vertex_hexes(v)) for v in G.vertex_ids) == 3
 
 

@@ -120,17 +120,48 @@ def _port_from_dict(raw: dict[str, Any], geometry: Geometry) -> Port:
 
 
 def _ports_from_vertices(data: dict[str, Any], geometry: Geometry) -> list[Port]:
-    """Fallback: ports declared inline on the vertices, as in KB D.1."""
-    by_edge: dict[str, dict[str, Any]] = {}
+    """Fallback: ports declared inline on the vertices, as in KB D.1.
+
+    A port occupies one coastal *edge*, so it shows up on two vertices. The
+    coast is a closed ring, so every coastal vertex touches exactly two coastal
+    edges: a port declared on a single vertex is therefore always ambiguous, and
+    we refuse to guess. Declare it on both vertices of the edge, or use "edge".
+    """
+    declared: dict[str, dict[str, Any]] = {}
     for raw in data.get("vertices", []):
         port = raw.get("port")
-        if not port:
-            continue
-        vid = raw["id"]
-        for eid in geometry.vertex_edges[vid]:
-            if eid in geometry.coastal_edges:
-                by_edge.setdefault(eid, port)
-    return [_port_from_dict(dict(p, edge=eid), geometry) for eid, p in by_edge.items()]
+        if port:
+            declared[raw["id"]] = port
+    if not declared:
+        return []
+
+    ports: list[Port] = []
+    used: set[str] = set()
+
+    for eid in geometry.coastal_edges:
+        a, b = geometry.edge_vertices[eid]
+        if a in declared and b in declared and _same_port(declared[a], declared[b]):
+            ports.append(_port_from_dict(dict(declared[a], edge=eid), geometry))
+            used.update((a, b))
+
+    unpaired = sorted(set(declared) - used)
+    if unpaired:
+        raise BoardError(
+            f"porto ambiguo su {unpaired}: ogni incrocio costiero tocca due lati "
+            "costieri, quindi non si puo dedurre su quale sta il porto. Dichiaralo "
+            "sul lato ('edge') oppure anche sull'incrocio gemello."
+        )
+    return ports
+
+
+def _same_port(a: dict[str, Any], b: dict[str, Any]) -> bool:
+    def key(spec: dict[str, Any]) -> tuple[Any, Any]:
+        ratio = spec.get("ratio")
+        if ratio is None and "type" in spec:
+            ratio = 2 if str(spec["type"]).startswith("2") else 3
+        return (int(ratio or 3), normalise_resource(spec.get("resource")))
+
+    return key(a) == key(b)
 
 
 def board_to_dict(board: Board) -> dict[str, Any]:

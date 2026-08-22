@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .board import BoardError
+from .board import Board, BoardError
 from .boardio import board_to_dict, load_board, random_board, save_board
 from .config import load_config
 from .precompute import precompute
@@ -52,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _load(args) -> "object":
+def _load(args) -> Board:
     if getattr(args, "command", None) == "newboard":
         board = random_board(seed=args.seed, balanced=not args.unbalanced)
     else:
@@ -88,7 +88,6 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "validate":
         problems = board.validate(strict=False)
-        warnings = board.warnings()
         if problems:
             print("TABELLONE NON VALIDO")
             for p in problems:
@@ -98,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
             f"tabellone valido: {len(board.hexes)} tessere, {board.total_pips} pip, "
             f"{len(board.ports)} porti, {len(board.placements)} colonie piazzate"
         )
-        for w in warnings:
+        for w in board.warnings():
             print(f"  avviso: {w}")
         return 0
 

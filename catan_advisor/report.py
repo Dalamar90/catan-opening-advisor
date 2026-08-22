@@ -66,7 +66,7 @@ def render_scarcity(pre: Precompute) -> str:
 
 
 def _vertex_line(pre: Precompute, rank: int, s: VertexSummary) -> str:
-    tiles = pre.board.describe_vertex(s.vertex).split("[", 1)[1].rstrip("]")
+    tiles = pre.board.vertex_label(s.vertex)
     cards = s.cards_per_round(pre.board.n_players)
     flag = "" if s.legal else "  (occupato/bloccato)"
     return (

@@ -131,6 +131,13 @@ class Board:
             if p.ratio == 2 and p.resource not in K.RESOURCES:
                 problems.append(f"porto 2:1 su {p.edge_id}: risorsa mancante o ignota")
 
+        port_vertices: list[str] = []
+        for p in self.ports:
+            port_vertices.extend(self.geometry.edge_vertices.get(p.edge_id, ()))
+        duplicated = {v for v in port_vertices if port_vertices.count(v) > 1}
+        if duplicated:
+            problems.append(f"piu porti sullo stesso incrocio: {sorted(duplicated)}")
+
         seen: set[str] = set()
         for pl in self.placements:
             if pl.vertex not in self.geometry.vertex_ids:
@@ -139,20 +146,22 @@ class Board:
             if pl.vertex in seen:
                 problems.append(f"due colonie sullo stesso incrocio {pl.vertex}")
             seen.add(pl.vertex)
-        for pl in self.placements:
-            for n in self.geometry.vertex_neighbours.get(pl.vertex, ()):
-                if n in seen:
-                    problems.append(
-                        f"distance rule violata: {pl.vertex} e {n} sono adiacenti"
-                    )
-                    break
+        # Report each offending pair once, not once per endpoint.
+        for a in sorted(seen):
+            for b in self.geometry.vertex_neighbours[a]:
+                if b in seen and a < b:
+                    problems.append(f"distance rule violata: {a} e {b} sono adiacenti")
 
         if strict and problems:
             raise BoardError("; ".join(problems))
         return problems
 
     def warnings(self) -> list[str]:
-        """Non-fatal oddities worth telling the user about."""
+        """Non-fatal oddities worth telling the user about.
+
+        Must stay safe on an incomplete board: it is called by the validate
+        command precisely when the board may be broken.
+        """
         out = []
         for a, b in self._adjacent_hex_pairs():
             if self.hexes[a].number in K.HIGH_NUMBERS and self.hexes[b].number in K.HIGH_NUMBERS:
@@ -172,7 +181,7 @@ class Board:
     def _adjacent_hex_pairs(self) -> list[tuple[str, str]]:
         pairs = []
         for eid, hs in self.geometry.edge_hexes.items():
-            if len(hs) == 2:
+            if len(hs) == 2 and hs[0] in self.hexes and hs[1] in self.hexes:
                 pairs.append((hs[0], hs[1]))
         return pairs
 
@@ -262,9 +271,13 @@ class Board:
             geometry=self.geometry,
         )
 
-    def describe_vertex(self, vertex_id: str) -> str:
+    def vertex_label(self, vertex_id: str) -> str:
+        """Just the tiles and port, e.g. '9-minerale / 6-legno / porto 3:1'."""
         parts = [str(h) for h in self.vertex_hexes(vertex_id)]
         port = self.vertex_port(vertex_id)
         if port:
             parts.append(str(port))
-        return f"{vertex_id} [" + " / ".join(parts) + "]"
+        return " / ".join(parts)
+
+    def describe_vertex(self, vertex_id: str) -> str:
+        return f"{vertex_id} [{self.vertex_label(vertex_id)}]"
