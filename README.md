@@ -71,6 +71,9 @@ python -m catan_advisor.cli pair boards/mio.json --explain v18,v26
 
 # il consiglio nel contesto del draft: avversari, attesa simulata, strada
 python -m catan_advisor.cli draft boards/mio.json --position 1
+
+# la stessa cosa come pagina HTML, col tabellone disegnato
+python -m catan_advisor.cli advise boards/mio.json --position 3 --html apertura.html
 ```
 
 ## Come si inserisce un tabellone

@@ -15,6 +15,7 @@ from .board import Board, BoardError
 from .boardio import board_to_dict, load_board, random_board, save_board
 from .config import load_config
 from .explain import render_advice
+from .render_html import render_advice_html
 from .precompute import precompute
 from .report import (
     render_board_map,
@@ -113,6 +114,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--options", type=int, default=3, help="quante raccomandazioni (minimo 3)"
     )
     p_advise.add_argument("--samples", type=int, help="campioni di simulazione")
+    p_advise.add_argument(
+        "--html", metavar="FILE",
+        help="scrivi anche una pagina HTML con il tabellone disegnato",
+    )
     _add_common(p_advise)
 
     return parser
@@ -215,11 +220,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "advise":
         cfg = load_config(args.config)
-        print(
-            render_advice(
-                advise(board, cfg, limit=args.options, samples=args.samples)
-            )
-        )
+        advice = advise(board, cfg, limit=args.options, samples=args.samples)
+        print(render_advice(advice))
+        if args.html:
+            with open(args.html, "w", encoding="utf-8") as fh:
+                fh.write(render_advice_html(advice))
+            print(f"pagina scritta in {args.html}")
         return 0
 
     if args.command == "draft":
