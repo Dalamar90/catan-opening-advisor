@@ -92,8 +92,8 @@ def test_diversity_is_per_distinct_resource(board, cfg):
 
 
 def test_diversity_can_be_switched_off_for_the_pair_evaluation(board, cfg):
-    with_it = score_vertex(board, "v26", cfg, include_diversity=True)
-    without = score_vertex(board, "v26", cfg, include_diversity=False)
+    with_it = score_vertex(board, "v26", cfg, standalone=True)
+    without = score_vertex(board, "v26", cfg, standalone=False)
     assert not without.breakdown.has("diversity")
     assert with_it.score > without.score
 
@@ -139,8 +139,8 @@ def test_expansion_never_counts_an_adjacent_junction(board, cfg):
     for v in ("v26", "v23", "v01", "v54"):
         s = score_vertex(board, v, cfg)
         neighbours = set(G.vertex_neighbours[v])
-        assert not any(t in neighbours for t, _, _ in s.expansion_targets)
-        assert all(distance in (2, 3) for _, distance, _ in s.expansion_targets)
+        assert not any(t.vertex in neighbours for t in s.expansion_targets)
+        assert all(t.distance in (2, 3) for t in s.expansion_targets)
 
 
 def test_expansion_cap_binds_only_for_a_minority_of_junctions(cfg):

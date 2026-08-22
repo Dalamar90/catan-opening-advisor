@@ -19,8 +19,10 @@ from .report import (
     render_precompute,
     render_vertex_explanation,
     render_vertex_scores,
+    render_pair_explanation,
+    render_pair_scores,
 )
-from .scoring import score_all, score_vertex
+from .scoring import best_pairs, score_all, score_pair, score_vertex
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -67,6 +69,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="includi anche gli incroci gia occupati o bloccati",
     )
     _add_common(p_score)
+
+    p_pair = sub.add_parser("pair", help="valutazione della coppia di colonie (KB B.4)")
+    p_pair.add_argument("board", help="file JSON del tabellone")
+    p_pair.add_argument("--top", type=int, default=5, help="quante coppie mostrare")
+    p_pair.add_argument(
+        "--first", metavar="VERTICE",
+        help="fissa la prima colonia e cerca il partner migliore (secondo pick)",
+    )
+    p_pair.add_argument(
+        "--explain", metavar="A,B",
+        help="breakdown completo di una coppia, es. v18,v26",
+    )
+    _add_common(p_pair)
 
     return parser
 
@@ -134,6 +149,36 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         scores = score_all(board, cfg, legal_only=not args.all)
         print(render_vertex_scores(scores, args.top))
+        return 0
+
+    if args.command == "pair":
+        cfg = load_config(args.config)
+        if args.explain:
+            try:
+                a, b = [v.strip() for v in args.explain.split(",")]
+            except ValueError:
+                print("errore: usa --explain v18,v26", file=sys.stderr)
+                return 2
+            unknown = [v for v in (a, b) if v not in board.geometry.vertex_ids]
+            if unknown:
+                print(f"errore: incroci sconosciuti {unknown}", file=sys.stderr)
+                return 2
+            if b in board.geometry.vertex_neighbours[a]:
+                print(
+                    f"errore: {a} e {b} sono adiacenti, la distance rule vieta la coppia",
+                    file=sys.stderr,
+                )
+                return 2
+            print(render_pair_explanation(score_pair(board, a, b, cfg)))
+            return 0
+        if args.first and args.first not in board.geometry.vertex_ids:
+            print(f"errore: incrocio sconosciuto {args.first}", file=sys.stderr)
+            return 2
+        pairs = best_pairs(board, cfg, first=args.first)
+        title = (
+            f"MIGLIORI PARTNER PER {args.first}" if args.first else f"TOP {args.top} COPPIE"
+        )
+        print(render_pair_scores(pairs, args.top, title))
         return 0
 
     if args.command == "precompute":

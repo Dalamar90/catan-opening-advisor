@@ -114,6 +114,11 @@ pair:
   # KB E.6: distinct tiles touched, as robber antifragility.
   distinct_tile_bonus: 0.25
 
+  # Anti-pattern 4 of KB D.5, moved here from the junction level: on a balanced
+  # board a single junction can never sit on both a 6 and an 8, but a pair can.
+  high_number_share_threshold: 0.5
+  high_number_share_penalty: -1.0
+
 # --- Ports, KB B.5 ----------------------------------------------------------
 ports:
   # 2:1 value as a function of the pair's production of that resource.

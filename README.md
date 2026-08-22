@@ -25,7 +25,7 @@ Non gioca al posto tuo e non implementa il mid-game. La specifica completa è in
 |---|---|---|
 | M1 | Modello del tabellone, geometria, pre-calcolo §B.6 | ✅ fatto |
 | M2 | Valutazione del singolo incrocio `S(v)` | ✅ fatto |
-| M3 | Valutazione della coppia (il cuore) | da fare |
+| M3 | Valutazione della coppia (il cuore) | ✅ fatto |
 | M4 | Contesto di draft, avversari, strade | da fare |
 | M5 | Output spiegabile §D.3 | da fare |
 | M6 | Validazione su Catanatron | da fare |
@@ -52,6 +52,15 @@ python -m catan_advisor.cli score boards/mio.json --top 10
 
 # perché quell'incrocio vale quel punteggio, termine per termine
 python -m catan_advisor.cli score boards/mio.json --explain v26
+
+# le migliori coppie di colonie (il vero output)
+python -m catan_advisor.cli pair boards/mio.json --top 5
+
+# secondo pick: prima colonia fissata, cerca il partner migliore
+python -m catan_advisor.cli pair boards/mio.json --first v23
+
+# breakdown completo di una coppia
+python -m catan_advisor.cli pair boards/mio.json --explain v18,v26
 ```
 
 ## Come si inserisce un tabellone

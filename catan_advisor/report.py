@@ -219,3 +219,50 @@ def render_vertex_explanation(score) -> str:
         for vertex, distance, pips in score.expansion_targets:
             lines.append(f"      {vertex} a {distance} strade, {pips} pip")
     return "\n".join(lines)
+
+
+# --- M3: pairs --------------------------------------------------------------
+
+
+def render_pair_scores(pairs: list, n: int = 5, title: str | None = None) -> str:
+    lines = [title or f"TOP {n} COPPIE", ""]
+    for i, p in enumerate(pairs[:n], start=1):
+        lines.append(f"   {i:>2}. {p.headline()}")
+        lines.append(f"       {p.board.vertex_label(p.a)}")
+        lines.append(f"       {p.board.vertex_label(p.b)}")
+    lines.append("")
+    lines.append("   [!] = almeno un vincolo hard violato (KB B.4)")
+    return "\n".join(lines)
+
+
+def render_pair_explanation(pair) -> str:
+    prod = "  ".join(
+        f"{K.RESOURCE_LABEL_IT[r]:<9}{pair.production.get(r, 0):>2} pip"
+        for r in K.RESOURCES
+    )
+    lines = [
+        f"COPPIA {pair.a} + {pair.b}",
+        f"   {pair.a}: {pair.board.vertex_label(pair.a)}",
+        f"   {pair.b}: {pair.board.vertex_label(pair.b)}",
+        "",
+        f"   S = {pair.score:.2f}   pip {pair.pips} ({pair.verdict()})",
+        f"   {pair.cards_per_roll:.3f} carte/tiro   {pair.cards_per_round:.2f} carte/giro",
+        f"   copertura {pair.resources_covered}/5   "
+        f"{pair.distinct_tiles} tessere distinte   "
+        f"{len(set(pair.numbers))} numeri distinti",
+        "",
+        "   PRODUZIONE",
+        f"   {prod}",
+    ]
+    if pair.violations:
+        lines += ["", "   VINCOLI HARD VIOLATI (KB B.4)"]
+        lines += [f"      [!] {v}" for v in pair.violations]
+    if pair.warnings:
+        lines += ["", "   AVVISI (anti-pattern KB D.5)"]
+        lines += [f"      - {w}" for w in pair.warnings]
+    lines += ["", "   DA DOVE VIENE IL PUNTEGGIO", pair.breakdown.render()]
+    if pair.expansion_targets:
+        lines += ["", "   ESPANSIONE"]
+        for t in pair.expansion_targets:
+            lines.append(f"      {t.vertex} a {t.distance} strade, {t.pips} pip")
+    return "\n".join(lines)

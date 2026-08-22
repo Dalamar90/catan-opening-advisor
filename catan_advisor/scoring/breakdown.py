@@ -22,9 +22,14 @@ class Contribution:
     value: float
     ref: str = ""       # where it comes from in the knowledge base, e.g. "B.3"
 
+    @property
+    def is_note(self) -> bool:
+        return self.value == 0.0
+
     def __str__(self) -> str:
         ref = f"  [{self.ref}]" if self.ref else ""
-        return f"{self.value:+6.2f}  {self.label}{ref}"
+        amount = "      " if self.is_note else f"{self.value:+6.2f}"
+        return f"{amount}  {self.label}{ref}"
 
 
 @dataclass

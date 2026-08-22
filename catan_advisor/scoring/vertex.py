@@ -18,6 +18,14 @@ from .breakdown import Breakdown
 from .ports import score_port
 
 
+@dataclass(frozen=True)
+class ExpansionTarget:
+    vertex: str
+    distance: int          # roads needed: 2 or 3
+    pips: int
+    value: float
+
+
 @dataclass
 class VertexScore:
     vertex: str
@@ -31,7 +39,7 @@ class VertexScore:
     legal: bool
     n_players: int
     breakdown: Breakdown
-    expansion_targets: list[tuple[str, int, int]] = field(default_factory=list)
+    expansion_targets: list[ExpansionTarget] = field(default_factory=list)
 
     @property
     def score(self) -> float:
@@ -58,13 +66,16 @@ def score_vertex(
     vertex_id: str,
     config: Config | None = None,
     weights: dict[str, float] | None = None,
-    include_diversity: bool = True,
+    standalone: bool = True,
 ) -> VertexScore:
-    """Score one junction as a standalone candidate.
+    """Score one junction.
 
-    `include_diversity` exists because resource variety is a property of the
-    portfolio, not of a junction (KB E.2). It is on when ranking junctions in
-    isolation and off when the pair evaluation of M3 accounts for variety once.
+    With `standalone=True` the junction is judged on its own, as at the top of
+    the precompute list. With `standalone=False` only the terms that genuinely
+    belong to the junction are kept -- production and number quality -- because
+    everything else (resource variety, ports, expansion room, robber exposure)
+    is a property of the *portfolio* and is computed once by the pair
+    evaluation of M3. Adding them here as well would count them twice.
     """
     cfg = config or load_config()
     w = weights if weights is not None else cfg.resource_weights(
@@ -75,12 +86,15 @@ def score_vertex(
     bd = Breakdown(subject=vertex_id)
 
     _add_production(board, vertex_id, w, bd)
-    if include_diversity:
-        _add_diversity(cfg, production, bd)
     _add_number_quality(cfg, numbers, bd)
-    targets = _add_expansion(board, vertex_id, cfg, bd)
-    score_port(cfg, board.vertex_port(vertex_id), production, portfolio_known=False, breakdown=bd)
-    _add_robber_risk(board, vertex_id, cfg, targets, bd)
+    targets: list[ExpansionTarget] = []
+    if standalone:
+        _add_diversity(cfg, production, bd)
+        targets = _add_expansion(board, vertex_id, cfg, bd)
+        score_port(
+            cfg, board.vertex_port(vertex_id), production, portfolio_known=False, breakdown=bd
+        )
+        _add_robber_risk(board, vertex_id, cfg, targets, bd)
 
     return VertexScore(
         vertex=vertex_id,
@@ -159,7 +173,7 @@ def _add_number_quality(cfg: Config, numbers: tuple[int, ...], bd: Breakdown) ->
 
 def _add_expansion(
     board: Board, vertex_id: str, cfg: Config, bd: Breakdown
-) -> list[tuple[str, int, int]]:
+) -> list[ExpansionTarget]:
     """Reachable production, KB B.3 corrected by E.3.
 
     Distance 1 is deliberately absent: a junction adjacent to this one can never
@@ -174,7 +188,7 @@ def _add_expansion(
         (2, "expansion_near", "expansion_near_coef", "expansion_near_cap", "a 2 strade"),
         (3, "expansion_far", "expansion_far_coef", "expansion_far_cap", "a 3 strade"),
     ]
-    chosen: list[tuple[str, int, int]] = []
+    chosen: list[ExpansionTarget] = []
     near_targets: list[str] = []
 
     for distance, key, coef_key, cap_key, phrase in tiers:
@@ -197,7 +211,10 @@ def _add_expansion(
         value = min(cap, coef * sum(p for _, p in best))
         detail = ", ".join(f"{v} ({p} pip)" for v, p in best)
         bd.add(key, f"espansione {phrase}: {detail}", value, ref="B.3/E.3")
-        chosen.extend((v, distance, p) for v, p in best)
+        total_pips = sum(p for _, p in best) or 1
+        chosen.extend(
+            ExpansionTarget(v, distance, p, value * p / total_pips) for v, p in best
+        )
 
     if not near_targets:
         bd.add(
@@ -213,12 +230,12 @@ def _add_robber_risk(
     board: Board,
     vertex_id: str,
     cfg: Config,
-    targets: list[tuple[str, int, int]],
+    targets: list[ExpansionTarget],
     bd: Breakdown,
 ) -> None:
     high = sum(h.pips for h in board.vertex_hexes(vertex_id) if h.number in K.HIGH_NUMBERS)
     threshold = int(cfg.get("vertex.robber_pip_threshold", 10))
-    isolated = not any(distance == 2 for _, distance, _ in targets)
+    isolated = not any(t.distance == 2 for t in targets)
     if high >= threshold and isolated:
         bd.add(
             "robber_target",
@@ -232,12 +249,12 @@ def score_all(
     board: Board,
     config: Config | None = None,
     legal_only: bool = True,
-    include_diversity: bool = True,
+    standalone: bool = True,
 ) -> list[VertexScore]:
     cfg = config or load_config()
     w = cfg.resource_weights(board.pips_by_resource, board.n_players)
     scores = [
-        score_vertex(board, v, cfg, w, include_diversity)
+        score_vertex(board, v, cfg, w, standalone)
         for v in board.geometry.vertex_ids
         if board.is_legal(v) or not legal_only
     ]
