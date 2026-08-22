@@ -266,3 +266,119 @@ def render_pair_explanation(pair) -> str:
         for t in pair.expansion_targets:
             lines.append(f"      {t.vertex} a {t.distance} strade, {t.pips} pip")
     return "\n".join(lines)
+
+
+# --- M4: draft context ------------------------------------------------------
+
+
+def render_opponents(profiles: list, market=None) -> str:
+    if not profiles:
+        return "AVVERSARI\n\n   Nessun piazzamento avversario inserito: il mercato non e leggibile."
+    lines = ["AVVERSARI GIA PIAZZATI (KB C.3)", ""]
+    for p in profiles:
+        lines.append(f"   {p.summary()}")
+        if p.missing:
+            lines.append(
+                "      non produce: "
+                + ", ".join(K.RESOURCE_LABEL_IT[r] for r in p.missing)
+            )
+    if market:
+        lines.append("")
+        if market.monopolies:
+            lines.append(
+                "   Monopoli tuoi: "
+                + ", ".join(K.RESOURCE_LABEL_IT[r] for r in market.monopolies)
+            )
+        if market.saturated:
+            lines.append(
+                "   Risorse sature (le hanno tutti): "
+                + ", ".join(K.RESOURCE_LABEL_IT[r] for r in market.saturated)
+            )
+        if market.leader is not None:
+            lines.append(f"   Leader percepito: P{market.leader}")
+    return "\n".join(lines)
+
+
+def render_draft_header(
+    context, simulation=None, erosion=None, board=None, strong_pips: int = 10
+) -> str:
+    lines = ["CONTESTO DI DRAFT (KB C.1)", "", f"   {context.describe()}"]
+    if context.is_first_pick and context.waiting_picks == 0:
+        lines.append(
+            "   Pick consecutivi: pianifica le due colonie come un pacchetto unico."
+        )
+    if simulation is not None:
+        gone = [v for v, p in simulation.survival.items() if p < 0.5]
+        lines.append(
+            f"   Simulazione su {simulation.samples} campioni: "
+            f"~{len(gone)} incroci spariranno prima del tuo prossimo pick"
+        )
+        if board is not None:
+            strong_gone = [v for v in gone if board.vertex_pips(v) >= strong_pips]
+            strong_left = [
+                v
+                for v, p in simulation.survival.items()
+                if p >= 0.5 and board.vertex_pips(v) >= strong_pips
+            ]
+            lines.append(
+                f"   Di questi, {len(strong_gone)} da almeno {strong_pips} pip; "
+                f"te ne restano {len(strong_left)}"
+            )
+            if len(strong_left) >= 2:
+                lines.append(
+                    "   -> Puoi permetterti un primo pick egoista: al ritorno trovi "
+                    "ancora materiale (KB C.1)."
+                )
+            else:
+                lines.append(
+                    "   -> Gia adesso devi prendere un incrocio che funzioni come META "
+                    "di una coppia realistica: il meglio non tornera (KB C.1)."
+                )
+        hot = simulation.opponent_picks.most_common(5)
+        if hot:
+            lines.append(
+                "   Piu contesi: "
+                + ", ".join(
+                    f"{v} ({n / simulation.samples:.0%})" for v, n in hot
+                )
+            )
+    if erosion is not None:
+        lines.append(f"   (stima statica di confronto, KB C.1: ~{erosion:.0f} incroci)")
+    return "\n".join(lines)
+
+
+def render_first_pick_options(options: list, board, n: int = 3) -> str:
+    lines = ["PRIMO PICK: candidati ordinati per valore ATTESO DELLA COPPIA", ""]
+    for i, o in enumerate(options[:n], start=1):
+        partner = o.plan.b if o.plan.a == o.vertex else o.plan.a
+        lines.append(f"   {i}. {o.vertex} [{board.vertex_label(o.vertex)}]")
+        lines.append(
+            f"      coppia attesa {o.expected_pair_score:.2f}   "
+            f"S(v) {o.vertex_score.score:.2f}   pip {o.vertex_score.pips}   "
+            f"VOR {o.vor:+.2f}"
+        )
+        lines.append(
+            f"      piano: {partner} [{board.vertex_label(partner)}] "
+            f"-> {o.plan.pips} pip, {o.plan.resources_covered}/5 "
+            f"({o.plan_probability:.0%} di probabilita che sia ancora libero)"
+        )
+        if o.fallbacks:
+            lines.append(
+                "      fallback: "
+                + ", ".join(f"{v} ({w:.0%})" for v, w in o.fallbacks)
+            )
+        lines.append(f"      archetipo: {o.plan.archetype()}")
+        lines.append("")
+    lines.append(
+        "   VOR = S(v) meno il miglior incrocio che ti aspetti di trovare al prossimo pick."
+    )
+    return "\n".join(lines)
+
+
+def render_roads(options: list, board, n: int = 3) -> str:
+    lines = ["STRADA INIZIALE (KB C.4)", ""]
+    for i, o in enumerate(options[:n], start=1):
+        lines.append(f"   {i}. {o.headline(board)}")
+        for w in o.warnings:
+            lines.append(f"      ! {w}")
+    return "\n".join(lines)

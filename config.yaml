@@ -160,3 +160,4 @@ report:
   top_n_vertices: 10
   min_recommendations: 3
   strong_vertex_pips: 10           # threshold used by the draft theory of C.1
+  first_pick_candidates: 8         # how many junctions get the full simulation

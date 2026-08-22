@@ -21,6 +21,7 @@ from .. import constants as K
 from ..board import Board, Placement, Port
 from ..config import Config, load_config
 from .breakdown import Breakdown
+from .market import MarketView, OpponentProfile, add_market_terms, profile_opponents
 from .ports import score_port
 from .vertex import ExpansionTarget, VertexScore, score_vertex
 
@@ -41,6 +42,7 @@ class PairScore:
     violations: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     expansion_targets: list[ExpansionTarget] = field(default_factory=list)
+    market: MarketView = field(default_factory=lambda: MarketView())
 
     @property
     def score(self) -> float:
@@ -61,6 +63,28 @@ class PairScore:
     @property
     def cards_per_round(self) -> float:
         return K.expected_cards_per_round(self.pips, self.board.n_players)
+
+    def archetype(self) -> str:
+        """Which plan this pair enables, KB C.4. Named explicitly because a
+        recommendation without a plan is just a number."""
+        p = self.production
+        city = p[K.ORE] >= 6 and p[K.WHEAT] >= 6
+        expansion = p[K.WOOD] >= 5 and p[K.BRICK] >= 5
+        two_to_one = [port for port in self.ports if port.ratio == 2]
+        monopoly_port = any(
+            port.resource and p.get(port.resource, 0) >= 8 for port in two_to_one
+        )
+        if monopoly_port:
+            return "porto/monopolio: converti il surplus, indipendente dagli scambi"
+        if city and not expansion:
+            return "grano-minerale: citta rapide e carte sviluppo, lento all'inizio"
+        if expansion and not city:
+            return "legno-mattone: espansione veloce, occupa lo spazio finche ce n'e"
+        if self.resources_covered == 5 and self.pips >= 19:
+            return "bilanciato: espandi a 3-4 colonie, poi converti in citta"
+        if city and expansion:
+            return "bilanciato aggressivo: entrambi i motori attivi"
+        return "specializzato: serve il secondo pick per chiudere il cerchio"
 
     def verdict(self) -> str:
         """KB B.4 benchmark, on raw pips."""
@@ -91,6 +115,7 @@ def score_pair(
     config: Config | None = None,
     weights: dict[str, float] | None = None,
     members: dict[str, VertexScore] | None = None,
+    profiles: list[OpponentProfile] | None = None,
 ) -> PairScore:
     cfg = config or load_config()
     w = weights if weights is not None else cfg.resource_weights(
@@ -135,6 +160,15 @@ def score_pair(
         score_port(cfg, port, production, portfolio_known=True, breakdown=bd)
     pair.expansion_targets = _add_expansion(board, a, b, cfg, bd)
     _add_high_number_concentration(cfg, board, a, b, production, bd)
+    pair.market = add_market_terms(
+        cfg,
+        board,
+        production,
+        numbers,
+        set(tiles),
+        profile_opponents(board) if profiles is None else profiles,
+        bd,
+    )
     _add_hard_constraints(cfg, pair, bd)
     pair.warnings = _anti_patterns(cfg, board, pair)
     return pair
@@ -463,10 +497,16 @@ def best_pairs(
     members = {
         v: score_vertex(board, v, cfg, w, standalone=False) for v in board.legal_vertices
     }
+    profiles = profile_opponents(board)
 
-    pairs = legal_pairs(board)
     if first is not None:
-        pairs = [(a, b) for a, b in pairs if first in (a, b)]
-    scored = [score_pair(board, a, b, cfg, w, members) for a, b in pairs]
+        # `first` is usually already on the board -- this is the second pick --
+        # so it is not in legal_vertices any more. Pair it with what is left.
+        neighbours = board.geometry.vertex_neighbours[first]
+        pairs = [(first, b) for b in board.legal_vertices if b != first and b not in neighbours]
+        members.setdefault(first, score_vertex(board, first, cfg, w, standalone=False))
+    else:
+        pairs = legal_pairs(board)
+    scored = [score_pair(board, a, b, cfg, w, members, profiles) for a, b in pairs]
     scored.sort(key=lambda s: (-s.score, -s.pips, s.a, s.b))
     return scored[:limit] if limit else scored

@@ -21,8 +21,20 @@ from .report import (
     render_vertex_scores,
     render_pair_explanation,
     render_pair_scores,
+    render_draft_header,
+    render_first_pick_options,
+    render_opponents,
+    render_roads,
 )
+from .roads import best_roads
 from .scoring import best_pairs, score_all, score_pair, score_vertex
+from .scoring.draft import (
+    draft_context,
+    erosion_estimate,
+    evaluate_first_pick,
+    simulate_opponents,
+)
+from .scoring.market import my_placements, profile_opponents
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -82,6 +94,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="breakdown completo di una coppia, es. v18,v26",
     )
     _add_common(p_pair)
+
+    p_draft = sub.add_parser(
+        "draft", help="consiglio nel contesto del draft: avversari, attesa, strada (KB C)"
+    )
+    p_draft.add_argument("board", help="file JSON del tabellone")
+    p_draft.add_argument("--top", type=int, default=3, help="quante opzioni mostrare")
+    p_draft.add_argument("--samples", type=int, help="campioni di simulazione")
+    _add_common(p_draft)
 
     return parser
 
@@ -179,6 +199,77 @@ def main(argv: list[str] | None = None) -> int:
             f"MIGLIORI PARTNER PER {args.first}" if args.first else f"TOP {args.top} COPPIE"
         )
         print(render_pair_scores(pairs, args.top, title))
+        return 0
+
+    if args.command == "draft":
+        cfg = load_config(args.config)
+        context = draft_context(board)
+        profiles = profile_opponents(board)
+        mine = my_placements(board)
+        blocks = []
+
+        if context.next_pick is None:
+            print("Hai gia piazzato entrambe le colonie: non c'e nessun pick da consigliare.")
+            return 0
+
+        if context.is_first_pick:
+            options = evaluate_first_pick(board, cfg, samples=args.samples)
+            if not options:
+                print("errore: nessun incrocio disponibile", file=sys.stderr)
+                return 2
+            best = options[0]
+            # The wait that matters starts *after* I take my pick: simulating the
+            # board as it stands now would simulate zero opponent picks.
+            simulation = simulate_opponents(
+                board, cfg, my_choice=best.vertex, samples=args.samples
+            )
+            blocks.append(
+                render_draft_header(
+                    context,
+                    simulation,
+                    erosion_estimate(board, cfg),
+                    board,
+                    int(cfg.get('report.strong_vertex_pips', 10)),
+                )
+            )
+            blocks.append(render_opponents(profiles))
+            blocks.append(render_first_pick_options(options, board, args.top))
+            roads = best_roads(
+                board, best.vertex, best.plan.production, cfg, simulation.survival
+            )
+            blocks.append(
+                render_roads(roads, board, args.top)
+                + f"\n\n   (strade calcolate per {best.vertex}, la raccomandazione #1;"
+                + f" la sopravvivenza e stimata sui {context.waiting_picks} pick di attesa)"
+            )
+        else:
+            blocks.append(render_draft_header(context))
+            blocks.append(render_opponents(profiles))
+            first = mine[0] if mine else None
+            if first is None:
+                print(
+                    "errore: e il tuo secondo pick ma non trovo la tua prima colonia. "
+                    f"Aggiungi un placement con player={board.my_position}.",
+                    file=sys.stderr,
+                )
+                return 2
+            pairs = best_pairs(board, cfg, first=first)
+            blocks.append(
+                render_pair_scores(
+                    pairs, args.top, f"SECONDO PICK: migliori partner per {first}"
+                )
+            )
+            if pairs:
+                best = pairs[0]
+                second = best.b if best.a == first else best.a
+                # No opponent picks left before the game starts, so nothing to
+                # discount: the road is judged on the target alone.
+                roads = best_roads(board, second, best.production, cfg)
+                blocks.append(
+                    render_roads(roads, board, args.top)
+                    + f"\n\n   (strade calcolate per {second}, la nuova colonia)"
+                )
+        print("\n\n".join(blocks))
         return 0
 
     if args.command == "precompute":

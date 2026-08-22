@@ -26,7 +26,7 @@ Non gioca al posto tuo e non implementa il mid-game. La specifica completa è in
 | M1 | Modello del tabellone, geometria, pre-calcolo §B.6 | ✅ fatto |
 | M2 | Valutazione del singolo incrocio `S(v)` | ✅ fatto |
 | M3 | Valutazione della coppia (il cuore) | ✅ fatto |
-| M4 | Contesto di draft, avversari, strade | da fare |
+| M4 | Contesto di draft, avversari, strade | ✅ fatto |
 | M5 | Output spiegabile §D.3 | da fare |
 | M6 | Validazione su Catanatron | da fare |
 
@@ -61,6 +61,9 @@ python -m catan_advisor.cli pair boards/mio.json --first v23
 
 # breakdown completo di una coppia
 python -m catan_advisor.cli pair boards/mio.json --explain v18,v26
+
+# il consiglio nel contesto del draft: avversari, attesa simulata, strada
+python -m catan_advisor.cli draft boards/mio.json --position 1
 ```
 
 ## Come si inserisce un tabellone
