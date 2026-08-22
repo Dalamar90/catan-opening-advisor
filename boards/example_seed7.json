@@ -1,0 +1,223 @@
+{
+  "players": 4,
+  "my_position": 1,
+  "hexes": [
+    {
+      "id": "h01",
+      "q": 0,
+      "r": -2,
+      "resource": "sheep",
+      "number": 4
+    },
+    {
+      "id": "h02",
+      "q": 1,
+      "r": -2,
+      "resource": "wood",
+      "number": 12
+    },
+    {
+      "id": "h03",
+      "q": 2,
+      "r": -2,
+      "resource": "desert",
+      "number": null
+    },
+    {
+      "id": "h04",
+      "q": -1,
+      "r": -1,
+      "resource": "ore",
+      "number": 9
+    },
+    {
+      "id": "h05",
+      "q": 0,
+      "r": -1,
+      "resource": "wheat",
+      "number": 5
+    },
+    {
+      "id": "h06",
+      "q": 1,
+      "r": -1,
+      "resource": "wheat",
+      "number": 6
+    },
+    {
+      "id": "h07",
+      "q": 2,
+      "r": -1,
+      "resource": "ore",
+      "number": 9
+    },
+    {
+      "id": "h08",
+      "q": -2,
+      "r": 0,
+      "resource": "wood",
+      "number": 6
+    },
+    {
+      "id": "h09",
+      "q": -1,
+      "r": 0,
+      "resource": "wood",
+      "number": 5
+    },
+    {
+      "id": "h10",
+      "q": 0,
+      "r": 0,
+      "resource": "sheep",
+      "number": 2
+    },
+    {
+      "id": "h11",
+      "q": 1,
+      "r": 0,
+      "resource": "wheat",
+      "number": 10
+    },
+    {
+      "id": "h12",
+      "q": 2,
+      "r": 0,
+      "resource": "brick",
+      "number": 8
+    },
+    {
+      "id": "h13",
+      "q": -2,
+      "r": 1,
+      "resource": "sheep",
+      "number": 4
+    },
+    {
+      "id": "h14",
+      "q": -1,
+      "r": 1,
+      "resource": "brick",
+      "number": 11
+    },
+    {
+      "id": "h15",
+      "q": 0,
+      "r": 1,
+      "resource": "ore",
+      "number": 8
+    },
+    {
+      "id": "h16",
+      "q": 1,
+      "r": 1,
+      "resource": "wood",
+      "number": 11
+    },
+    {
+      "id": "h17",
+      "q": -2,
+      "r": 2,
+      "resource": "brick",
+      "number": 3
+    },
+    {
+      "id": "h18",
+      "q": -1,
+      "r": 2,
+      "resource": "wheat",
+      "number": 10
+    },
+    {
+      "id": "h19",
+      "q": 0,
+      "r": 2,
+      "resource": "sheep",
+      "number": 3
+    }
+  ],
+  "ports": [
+    {
+      "edge": "e04",
+      "ratio": 3,
+      "resource": null,
+      "vertices": [
+        "v02",
+        "v06"
+      ]
+    },
+    {
+      "edge": "e10",
+      "ratio": 2,
+      "resource": "sheep",
+      "vertices": [
+        "v07",
+        "v11"
+      ]
+    },
+    {
+      "edge": "e33",
+      "ratio": 3,
+      "resource": null,
+      "vertices": [
+        "v21",
+        "v27"
+      ]
+    },
+    {
+      "edge": "e62",
+      "ratio": 2,
+      "resource": "wood",
+      "vertices": [
+        "v43",
+        "v47"
+      ]
+    },
+    {
+      "edge": "e71",
+      "ratio": 2,
+      "resource": "brick",
+      "vertices": [
+        "v50",
+        "v54"
+      ]
+    },
+    {
+      "edge": "e68",
+      "ratio": 3,
+      "resource": null,
+      "vertices": [
+        "v49",
+        "v52"
+      ]
+    },
+    {
+      "edge": "e50",
+      "ratio": 2,
+      "resource": "wheat",
+      "vertices": [
+        "v34",
+        "v39"
+      ]
+    },
+    {
+      "edge": "e24",
+      "ratio": 2,
+      "resource": "ore",
+      "vertices": [
+        "v17",
+        "v22"
+      ]
+    },
+    {
+      "edge": "e07",
+      "ratio": 3,
+      "resource": null,
+      "vertices": [
+        "v04",
+        "v08"
+      ]
+    }
+  ],
+  "placements": []
+}

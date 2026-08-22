@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "catan-opening-advisor"
+version = "0.1.0"
+description = "Explainable advisor for the Catan opening placement phase"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+validation = ["catanatron"]   # GPL-3.0 - only needed for M6, never imported by the core
+
+[project.scripts]
+catan-advisor = "catan_advisor.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["catan_advisor*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

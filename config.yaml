@@ -1,0 +1,136 @@
+# Catan opening advisor -- all tunable weights.
+#
+# Nothing here is a rule of the game (those live in catan_advisor/constants.py).
+# Everything here is an opinion, and every opinion is meant to be overwritten by
+# the calibration run of M6.
+#
+# Units: one point == one raw pip == 1/36 of a card per roll. Keep it that way,
+# otherwise the numbers stop being comparable and the explanations stop making
+# sense.
+#
+# Values follow KB part D.4 corrected by part E, which was derived from
+# Catanatron's tuned weights. Where the two disagree, part E wins; the comment
+# says why.
+
+meta:
+  version: 1
+  # KB E.2 says a distinct resource is worth 4 pips. That number anchors the
+  # whole scale: everything else is calibrated relative to it.
+  variety_pip_equivalent: 4.0
+
+# --- Resource weights (KB B.2) ---------------------------------------------
+resource_weights:
+  wheat: 1.20      # enters 3 of the 4 build costs
+  ore: 1.10
+  brick: 1.10
+  wood: 1.00
+  sheep: 0.80      # worst trade rate, only redeemed by a 2:1 port
+
+# Dynamic correction for how scarce each resource actually is on THIS board:
+#   W_final(r) = W_base(r) * (expected_quota(r) / actual_quota(r)) ** exponent
+scarcity:
+  exponent: 0.5
+  # Guardrails: a resource sitting on 2-3-12 would otherwise explode the weight.
+  min_multiplier: 0.70
+  max_multiplier: 1.60
+
+# --- Single vertex, KB B.3 --------------------------------------------------
+vertex:
+  # KB B.3 gives +1.5 per distinct resource, KB B.4 gives +8.0 for 5/5 coverage.
+  # Those measure the same thing twice. Catanatron counts variety once, at
+  # player level, so the pair is the right place for it. This bonus is therefore
+  # only applied when ranking vertices in isolation (the precompute top-10) and
+  # is switched off inside the pair evaluation.
+  diversity_per_resource: 1.5
+  diversity_in_pair_score: false
+
+  distinct_numbers_bonus: 0.5        # three different numbers on one vertex
+  repeated_number_penalty: -0.8      # per repetition
+  mid_band_bonus: 0.5                # at least two tiles among 4,5,6,8,9,10
+  extremes_only_penalty: -1.5        # only 2,3,11,12
+
+  # Expansion. KB B.3 made this a step function at pip >= 8; KB E.3 shows
+  # Catanatron scores reachable *production*, continuously. Value of a
+  # reachable vertex = coefficient * its pips, capped.
+  expansion_1road_coef: 0.11
+  expansion_1road_cap: 1.8
+  expansion_2road_coef: 0.045
+  expansion_2road_cap: 0.8
+  dead_end_penalty: -1.2
+  expansion_multiplier_3p: 1.4       # KB C.2: the board stays open with 3
+
+  robber_target_penalty: -0.6        # >=10 pips on 6/8 and no escape route
+
+# --- Pair of settlements, KB B.4 -- the real output -------------------------
+pair:
+  # Hard constraints never remove a candidate from the ranking (at pick #8 you
+  # may have nothing better), they apply a penalty and raise a red flag.
+  hard_constraints:
+    min_wheat_pips: 4
+    min_total_pips: 18
+    min_wood_pips: 2
+    min_brick_pips: 2
+    min_resources_covered: 4
+    violation_penalty: -3.0          # per violated constraint
+
+  # Resource coverage. KB B.4 hands out the full +4 pip-equivalents for a
+  # resource covered by a single 12 (1 pip), which would make coastal junk look
+  # good. Credit therefore ramps with production and saturates.
+  coverage:
+    credit_by_pips: {0: 0.0, 1: 0.3, 2: 0.6, 3: 0.85, 4: 1.0}
+    full_credit_from_pips: 4
+    # Relative to a 3/5 baseline, as in KB B.4.
+    baseline_resources: 3
+    redundant_port_credit: 0.5       # 4/5 plus a 2:1 on the redundant resource
+    bonus_3p_multiplier: 1.125       # KB C.2 raises 5/5 coverage with 3 players
+
+  wood_brick_balance_bonus: 1.0      # ratio within 1.5:1
+  wheat_engine_bonus: 1.0            # wheat >= 6 pips
+  city_engine_bonus: 1.5             # ore >= 5 and wheat >= 5
+  number_diversity_bonus: 1.0        # >= 5 distinct numbers
+  number_diversity_penalty: -1.5     # <= 3 distinct numbers
+  no_dominant_number_bonus: 0.8      # no single number above 35% of pips
+  dominant_number_threshold: 0.35
+
+  # KB E.6: distinct tiles touched, as robber antifragility.
+  distinct_tile_bonus: 0.25
+
+# --- Ports, KB B.5 ----------------------------------------------------------
+ports:
+  # 2:1 value as a function of the pair's production of that resource.
+  specific_by_pips: {0: 0.0, 3: 1.0, 5: 2.2, 8: 3.2}
+  generic_base: 0.4
+  generic_high_production_bonus: 1.0    # pair has >= 20 pips
+  generic_surplus_bonus: 1.2            # some resource at >= 8 pips
+  # At the first pick the portfolio does not exist yet, so the port can only be
+  # priced as an option on a plausible partner. Arbitrary, hence exposed.
+  unknown_portfolio_discount: 0.4
+
+# --- Draft context, KB C.1 to C.3 ------------------------------------------
+draft:
+  # Default is a greedy simulation of the opponents' remaining picks: cheap on
+  # 54 vertices, and it produces the fallback plan for free. erosion_rate is the
+  # degraded mode used when only part of the board has been entered.
+  mode: simulate            # simulate | erosion
+  erosion_rate: 2.5
+  simulation_noise: 0.15    # opponents are not perfect maximisers
+  simulation_samples: 24
+
+market:
+  monopoly_bonus: 1.5              # a resource no opponent produces
+  saturated_penalty: -1.0          # a resource everybody produces
+  neglected_numbers_bonus: 0.5
+  shared_tile_penalty: -0.3        # per tile shared with the perceived leader
+  block_max_cost: 1.5              # never pay more than this to block
+
+roads:
+  # The initial road reserves a vertex one step away; the two-step targets it
+  # opens are worth about a third of that.
+  two_step_weight: 0.33
+  survival_discount: true          # weight a target by its chance of surviving
+
+# --- Reporting --------------------------------------------------------------
+report:
+  top_n_vertices: 10
+  min_recommendations: 3
+  strong_vertex_pips: 10           # threshold used by the draft theory of C.1
