@@ -35,7 +35,20 @@ def render_advice(advice: Advice, width: int = 78) -> str:
         )
     header.append("=" * width)
 
-    blocks = ["\n".join(header), _render_board_state(advice)]
+    blocks = ["\n".join(header)]
+    if advice.turn_not_reached:
+        n = advice.pending_opponent_picks
+        blocks.append(
+            "ATTENZIONE: NON E ANCORA IL TUO TURNO\n\n"
+            f"   Mancano {n} piazzamenti avversari prima del tuo pick "
+            f"#{advice.context.next_pick}, e non sono stati inseriti.\n"
+            "   Quello che segue e quindi un PIANO, non una decisione: gli incroci\n"
+            "   consigliati potrebbero essere gia presi quando tocchera a te.\n"
+            "   Per ogni opzione trovi la probabilita che sia ancora libera.\n"
+            "   Appena i tuoi avversari piazzano, aggiungili in 'placements' e\n"
+            "   rilancia: il consiglio diventa affidabile."
+        )
+    blocks.append(_render_board_state(advice))
     if advice.profiles:
         blocks.append(render_opponents(advice.profiles, _market_of(advice)))
     for rec in advice.recommendations:
@@ -96,8 +109,18 @@ def _render_recommendation(advice: Advice, rec: Recommendation, width: int) -> s
         f"  |  {rec.vertex_score.cards_per_round:.2f} carte/giro"
         f"  |  risorse: {_names(rec.vertex_score.resources)}",
         "",
-        "   PERCHE:",
     ]
+    if advice.turn_not_reached:
+        verdict = (
+            "molto probabile" if rec.availability >= 0.7
+            else "a rischio" if rec.availability >= 0.35
+            else "difficile che regga"
+        )
+        lines.append(
+            f"   DISPONIBILE AL TUO TURNO: {rec.availability:.0%} ({verdict})"
+        )
+        lines.append("")
+    lines.append("   PERCHE:")
     lines += [f"   - {reason}" for reason in rec.reasons]
 
     if rec.risks:

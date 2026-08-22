@@ -64,6 +64,7 @@ class Recommendation:
     road: RoadOption | None = None
     road_alternative: RoadOption | None = None
     fallbacks: list[tuple[str, float]] = field(default_factory=list)
+    availability: float = 1.0   # chance it is still free when my turn comes
 
     @property
     def archetype(self) -> str:
@@ -79,10 +80,21 @@ class Advice:
     recommendations: list[Recommendation]
     simulation: Simulation | None = None
     existing: tuple[str, ...] = ()
+    pending_opponent_picks: int = 0
 
     @property
     def is_first_pick(self) -> bool:
         return self.context.is_first_pick
+
+    @property
+    def turn_not_reached(self) -> bool:
+        """True when opponents still have to place before me.
+
+        The advice is then a plan, not a decision: what it ranks may well be
+        gone by the time I actually pick. Entering their placements as they
+        happen turns the plan back into a decision.
+        """
+        return self.pending_opponent_picks > 0
 
 
 def advise(
@@ -101,10 +113,18 @@ def advise(
     if context.next_pick is None:
         return Advice(board, context, pre, profiles, [], existing=mine)
 
+    pending = context.opponent_picks_before_my_next()
     if context.is_first_pick:
         recommendations, simulation = _first_pick_advice(board, cfg, limit, samples, pre)
     else:
         recommendations, simulation = _second_pick_advice(board, cfg, limit, mine, pre)
+
+    if pending:
+        # Opponents still have to place: annotate how likely each candidate is
+        # to survive until my turn, instead of pretending the board is mine.
+        before = simulate_opponents(board, cfg, samples=samples)
+        for rec in recommendations:
+            rec.availability = before.survival.get(rec.vertex, 1.0)
 
     return Advice(
         board=board,
@@ -114,6 +134,7 @@ def advise(
         recommendations=recommendations,
         simulation=simulation,
         existing=mine,
+        pending_opponent_picks=pending,
     )
 
 
